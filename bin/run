@@ -1,0 +1,34 @@
+#!/usr/bin/env node
+
+const http = require('http');
+const Sequelize = require('sequelize');
+
+const config = require('../config')[process.env.NODE_ENV || 'development'];
+
+const log = config.log();
+const app = require('../app')(config);
+
+function connectToPostgres() {
+  const { options } = config.postgres;
+  const client = new Sequelize(options);
+
+  client.authenticate().then(() => {
+    log.info('Connection to postgres established.');
+  }).catch((err) => {
+    log.info('Unable to connect to postgres:', err);
+  });
+  return client;
+}
+
+const postgresClient = connectToPostgres();
+config.postgres.client = postgresClient;
+
+const server = http.createServer(app);
+
+server.listen(process.env.PORT || 3000);
+
+server.on('listening', () => {
+  log.info(
+    `Hi there! I'm listening on port ${server.address().port} in ${app.get('env')} mode.`,
+  );
+});
